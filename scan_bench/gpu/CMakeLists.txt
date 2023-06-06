@@ -6,30 +6,9 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-find_package(OpenCL)
-FIND_PATH(HPP_FOUND CL/cl.hpp PATHS ${OpenCL_INCLUDE_DIRS})
-if(NOT OpenCL_FOUND OR NOT HPP_FOUND)
-  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+find_package(Vuh REQUIRED)
 
-  find_package(OpenCL REQUIRED)
-
-  set(OpenCL_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS} "${SDK_ROOT}/include")
-  FIND_PATH(HPP_FOUND CL/opencl.hpp PATHS ${OpenCL_INCLUDE_DIRS} REQUIRED)
-endif()
-
-if(NOT OpenCL_FOUND)
-  message(FATAL_ERROR "Could not find OpenCL include/libs. Set OCL_ROOT to your OpenCL SDK")
-else()
-  message(STATUS "Selected OpenCL includes from ${OpenCL_INCLUDE_DIRS}")
-  message(STATUS "Selected OpenCL lib ${OpenCL_LIBRARIES}")
-endif()
-
-# extra libs for static library
-if(UNIX AND ${OpenCL_LIBRARIES} MATCHES "libOpenCL.a")
-  set(OpenCL_LIBRARIES ${OpenCL_LIBRARIES} pthread dl)
-endif()
-
-FIND_PACKAGE( Boost COMPONENTS program_options REQUIRED )
+find_package( Boost COMPONENTS program_options REQUIRED )
 
 find_package( OpenCV REQUIRED )
 
@@ -43,12 +22,12 @@ set(SCAN_GPU_SOURCE_FILES
 )
 
 add_executable(scan_gpu ${SCAN_GPU_SOURCE_FILES})
-target_link_libraries(scan_gpu ${OpenCL_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS}  ${JPEG_LIBRARY})
-target_include_directories(scan_gpu PRIVATE ${OpenCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${JPEG_INCLUDE_DIR} "include" "kernels")
-target_compile_definitions(scan_gpu PRIVATE CL_TARGET_OPENCL_VERSION=120)
+target_link_libraries(scan_gpu PUBLIC vuh::vuh ${Boost_LIBRARIES} ${OpenCV_LIBS}  ${JPEG_LIBRARY})
+target_include_directories(scan_gpu PRIVATE ${Boost_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${JPEG_INCLUDE_DIR} "include" "kernels")
+
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
    CMAKE_CXX_COMPILER_ID STREQUAL "GNU"   OR
    CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-  target_compile_options(scan_gpu PRIVATE -fPIC -Wall -Wextra -Wno-unused-para -O3 -mfloat-abi=hard -mfpu=neon)
+  target_compile_options(scan_gpu PRIVATE -fPIC -Wall -Wextra -Wno-unused-para -O3)
 endif()
